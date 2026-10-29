@@ -1,0 +1,124 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import { profile } from '../../config/site';
+
+export const getStaticPaths = (async () => {
+  const work = (await getCollection('work', ({ data }) => !data.draft)).sort(
+    (a, b) => a.data.order - b.data.order
+  );
+  return work.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: { entry, index: i, prev: work[i - 1], next: work[i + 1] }
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  entry: CollectionEntry<'work'>;
+  index: number;
+  prev?: CollectionEntry<'work'>;
+  next?: CollectionEntry<'work'>;
+}
+
+const { entry, prev, next } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+---
+
+<Base title={`${d.title} | ${profile.alias}`} description={d.summary} type="article">
+  <article class="cs-page">
+    <div class="container">
+      <a class="back-link" href="/#work"><Icon name="arrowLeft" /> All work</a>
+
+      <header class="cs-header">
+        <p class="eyebrow">{d.category}{d.client && ` · ${d.client}`}</p>
+        <h1>{d.title}</h1>
+        {d.subtitle && <p class="cs-subtitle">{d.subtitle}</p>}
+        <p class="cs-summary">{d.summary}</p>
+        <span class="result-pill"><Icon name="check" /> {d.impact}</span>
+      </header>
+
+      {
+        d.metrics.length > 0 && (
+          <ul class="metrics cs-metrics" aria-label="Results">
+            {d.metrics.map((m) => (
+              <li>
+                <span class="metric-value">{m.value}</span>
+                <span class="metric-label">{m.label}</span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+
+      <section class="glance" aria-label="In short">
+        <div>
+          <h2>The problem</h2>
+          <p>{d.challenge}</p>
+        </div>
+        <div>
+          <h2>What I did</h2>
+          <p>{d.solution}</p>
+        </div>
+        <div>
+          <h2>The result</h2>
+          <p>{d.result}</p>
+        </div>
+      </section>
+
+      {
+        d.diagram && (
+          <figure class="cs-figure">
+            <a href={d.diagram} target="_blank" rel="noopener" aria-label="Open full-size diagram">
+              <img src={d.diagram} alt={d.diagramAlt ?? `${d.title} diagram`} loading="lazy" />
+            </a>
+            <figcaption>How it works (click to enlarge)</figcaption>
+          </figure>
+        )
+      }
+
+      <div class="cs-body">
+        <div class="prose">
+          <Content />
+        </div>
+        <aside class="cs-aside">
+          <div>
+            <h2>Tools used</h2>
+            <ul class="chips">
+              {d.stack.map((t) => <li class="chip">{t}</li>)}
+            </ul>
+          </div>
+        </aside>
+      </div>
+
+      <section class="cs-cta">
+        <div>
+          <h2>Have a process like this?</h2>
+          <p>Tell me how it works today and I'll tell you what's possible.</p>
+        </div>
+        <a class="btn btn-primary" href="/#contact">Let's talk <Icon name="arrowRight" /></a>
+      </section>
+
+      <nav class="cs-pager" aria-label="More case studies">
+        {
+          prev && (
+            <a href={`/work/${prev.id}/`}>
+              <span>← Previous</span>
+              {prev.data.title}
+            </a>
+          )
+        }
+        {
+          next && (
+            <a class="next" href={`/work/${next.id}/`}>
+              <span>Next →</span>
+              {next.data.title}
+            </a>
+          )
+        }
+      </nav>
+    </div>
+  </article>
+</Base>

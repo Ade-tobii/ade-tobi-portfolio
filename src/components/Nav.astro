@@ -1,0 +1,109 @@
+---
+import Icon from './Icon.astro';
+import Avatar from './Avatar.astro';
+import { nav, profile } from '../config/site';
+---
+
+<header class="navbar" id="navbar">
+  <nav class="navbar-inner" aria-label="Main">
+    <a href="/" class="nav-logo">
+      <Avatar class="nav-avatar" decorative eager />
+      {profile.alias}
+    </a>
+
+    <ul class="nav-links" id="nav-links">
+      {
+        nav.map((item) => (
+          <li>
+            <a href={item.href}>{item.label}</a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="nav-actions">
+      <button
+        class="icon-btn"
+        type="button"
+        data-open-palette
+        aria-label="Search the site"
+        title="Search (Ctrl K)"
+      >
+        <Icon name="search" />
+      </button>
+      <button
+        class="icon-btn theme-toggle"
+        id="theme-toggle"
+        type="button"
+        aria-label="Switch colour theme"
+        title="Switch colour theme"
+      >
+        <Icon name="moon" class="icon-moon" />
+        <Icon name="sun" class="icon-sun" />
+      </button>
+      <a href="/#contact" class="btn btn-primary btn-sm">Let's talk</a>
+      <button
+        class="icon-btn nav-toggle"
+        id="nav-toggle"
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="nav-links"
+      >
+        <Icon name="menu" class="icon-open" />
+        <Icon name="close" class="icon-close" />
+      </button>
+    </div>
+  </nav>
+</header>
+
+<style>
+  .nav-toggle :global(.icon-close),
+  .nav-toggle[aria-expanded='true'] :global(.icon-open) {
+    display: none;
+  }
+
+  .nav-toggle[aria-expanded='true'] :global(.icon-close) {
+    display: block;
+  }
+</style>
+
+<script>
+  const navbar = document.getElementById('navbar');
+  const toggle = document.getElementById('nav-toggle');
+  const links = document.getElementById('nav-links');
+  const themeBtn = document.getElementById('theme-toggle');
+
+  const onScroll = () => navbar?.classList.toggle('scrolled', window.scrollY > 16);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Mobile menu
+  const setOpen = (open: boolean) => {
+    toggle?.setAttribute('aria-expanded', String(open));
+    toggle?.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    links?.classList.toggle('open', open);
+  };
+
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+  }
+  links?.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setOpen(false);
+  });
+
+  // Light / dark theme
+  themeBtn?.addEventListener('click', () => {
+    const root = document.documentElement;
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      // Private mode or blocked storage: the switch still works for this visit.
+    }
+  });
+</script>

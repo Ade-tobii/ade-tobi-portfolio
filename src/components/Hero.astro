@@ -1,0 +1,93 @@
+---
+import Icon from './Icon.astro';
+import Avatar from './Avatar.astro';
+import { heroStory, metrics, profile } from '../config/site';
+---
+
+<section class="hero" id="top">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-intro">
+          <Avatar decorative eager />
+          <p class="hero-intro-text">
+            <strong>Hi, I'm {profile.alias}</strong>
+            <span>{profile.shortRole}</span>
+          </p>
+        </div>
+
+        <h1 class="hero-title">{profile.headline}</h1>
+        <p class="hero-text">{profile.intro}</p>
+
+        <div class="hero-actions">
+          <a href="#work" class="btn btn-primary">
+            See my work
+            <Icon name="arrowRight" />
+          </a>
+          <a href="#contact" class="btn btn-secondary">Get in touch</a>
+          {
+            profile.resumeUrl && (
+              <a
+                href={profile.resumeUrl}
+                class="btn btn-secondary"
+                download="Adegboyega-Precious-CV.pdf"
+              >
+                <Icon name="download" />
+                Download CV
+              </a>
+            )
+          }
+        </div>
+
+        <p class="availability">{profile.availability}</p>
+      </div>
+
+      <figure class="story-card" aria-labelledby="story-title">
+        <p class="story-kicker">{heroStory.kicker}</p>
+        <h2 class="story-title" id="story-title">{heroStory.title}</h2>
+        <p class="story-context">{heroStory.context}</p>
+
+        <div class="story-bars">
+          {
+            [heroStory.before, heroStory.after].map((row, i) => (
+              <div>
+                <div class="story-bar-head">
+                  <span>{row.label}</span>
+                  <strong>{row.value}</strong>
+                </div>
+                <div class="story-track" aria-hidden="true">
+                  <div
+                    class:list={['story-fill', { after: i === 1 }]}
+                    style={`--ratio:${row.ratio}`}
+                  />
+                </div>
+              </div>
+            ))
+          }
+        </div>
+
+        <ul class="story-notes">
+          {
+            heroStory.notes.map((note) => (
+              <li>
+                <Icon name="check" />
+                {note}
+              </li>
+            ))
+          }
+        </ul>
+      </figure>
+    </div>
+
+    <ul class="metrics" aria-label="Results at a glance">
+      {
+        metrics.map((m) => (
+          <li class="reveal">
+            <span class="metric-value">{m.value}</span>
+            <span class="metric-label">{m.label}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

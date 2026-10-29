@@ -1,0 +1,178 @@
+---
+import { getCollection } from 'astro:content';
+import Icon from './Icon.astro';
+import { nav, profile } from '../config/site';
+
+const work = (await getCollection('work', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order
+);
+
+const items = [
+  { title: 'Home', group: 'Page', href: '/', keywords: 'top start' },
+  ...nav.map((n) => ({
+    title: n.label,
+    group: 'Page',
+    href: n.href,
+    keywords: n.label === 'Contact' ? 'hire email message form' : ''
+  })),
+  { title: 'Experience', group: 'Page', href: '/#experience', keywords: 'cv career jobs' },
+  ...work.map((w) => ({
+    title: w.data.title,
+    group: 'Case study',
+    href: `/work/${w.id}/`,
+    keywords: [w.data.category, w.data.client ?? '', ...w.data.stack].join(' ')
+  })),
+  {
+    title: `Email ${profile.email}`,
+    group: 'Link',
+    href: `mailto:${profile.email}`,
+    keywords: 'contact'
+  },
+  { title: 'LinkedIn', group: 'Link', href: profile.links.linkedin, keywords: 'social' },
+  { title: 'GitHub', group: 'Link', href: profile.links.github, keywords: 'code social' },
+  ...(profile.resumeUrl
+    ? [{ title: 'Download CV', group: 'Link', href: profile.resumeUrl, keywords: 'resume' }]
+    : [])
+];
+---
+
+<dialog class="cmd" id="cmd" aria-label="Search the site">
+  <div class="cmd-box">
+    <div class="cmd-input-row">
+      <Icon name="search" />
+      <input
+        class="cmd-input"
+        id="cmd-input"
+        type="text"
+        placeholder="Search projects, tools or pages…"
+        autocomplete="off"
+        role="combobox"
+        aria-expanded="true"
+        aria-controls="cmd-results"
+        aria-autocomplete="list"
+      />
+    </div>
+    <ul class="cmd-results" id="cmd-results" role="listbox"></ul>
+    <div class="cmd-footer" aria-hidden="true">
+      <span><kbd>↑</kbd> <kbd>↓</kbd> navigate</span>
+      <span><kbd>↵</kbd> open</span>
+      <span><kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+  <script
+    type="application/json"
+    id="cmd-data"
+    set:html={JSON.stringify(items).replace(/</g, '\\u003c')}
+  />
+</dialog>
+
+<script>
+  interface Item {
+    title: string;
+    group: string;
+    href: string;
+    keywords: string;
+  }
+
+  const dialog = document.getElementById('cmd') as HTMLDialogElement | null;
+  const input = document.getElementById('cmd-input') as HTMLInputElement | null;
+  const list = document.getElementById('cmd-results') as HTMLUListElement | null;
+  const items: Item[] = JSON.parse(document.getElementById('cmd-data')?.textContent || '[]');
+
+  let results: Item[] = [];
+  let selected = 0;
+
+  function go(item: Item) {
+    dialog?.close();
+    if (item.href.startsWith('http')) window.open(item.href, '_blank', 'noopener');
+    else window.location.href = item.href;
+  }
+
+  function render() {
+    if (!list || !input) return;
+    const q = input.value.toLowerCase().trim();
+    results = items.filter((i) => `${i.title} ${i.group} ${i.keywords}`.toLowerCase().includes(q));
+    selected = Math.min(selected, Math.max(results.length - 1, 0));
+    list.replaceChildren();
+
+    if (!results.length) {
+      const li = document.createElement('li');
+      li.className = 'cmd-empty';
+      li.textContent = 'Nothing found. Try a tool name like "SAP" or "n8n".';
+      list.append(li);
+      input.removeAttribute('aria-activedescendant');
+      return;
+    }
+
+    results.forEach((item, i) => {
+      const li = document.createElement('li');
+      li.className = 'cmd-item';
+      li.id = `cmd-opt-${i}`;
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', String(i === selected));
+      const title = document.createElement('span');
+      title.className = 'cmd-item-title';
+      title.textContent = item.title;
+      const group = document.createElement('span');
+      group.className = 'cmd-item-group';
+      group.textContent = item.group;
+      li.append(title, group);
+      li.addEventListener('click', () => go(item));
+      li.addEventListener('mousemove', () => {
+        if (selected !== i) {
+          selected = i;
+          render();
+        }
+      });
+      list.append(li);
+    });
+    input.setAttribute('aria-activedescendant', `cmd-opt-${selected}`);
+    document.getElementById(`cmd-opt-${selected}`)?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function open() {
+    if (!dialog || !input || dialog.open) return;
+    input.value = '';
+    selected = 0;
+    render();
+    dialog.showModal();
+    input.focus();
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (dialog?.open) dialog.close();
+      else open();
+    }
+  });
+
+  document
+    .querySelectorAll('[data-open-palette]')
+    .forEach((b) => b.addEventListener('click', open));
+
+  input?.addEventListener('input', () => {
+    selected = 0;
+    render();
+  });
+
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selected = (selected + 1) % Math.max(results.length, 1);
+      render();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selected = (selected - 1 + results.length) % Math.max(results.length, 1);
+      render();
+    } else if (e.key === 'Enter' && results[selected]) {
+      e.preventDefault();
+      go(results[selected]);
+    }
+  });
+
+  // Click on the backdrop closes the dialog
+  dialog?.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+</script>

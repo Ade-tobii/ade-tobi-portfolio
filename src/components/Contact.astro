@@ -1,0 +1,341 @@
+---
+import { getCollection } from 'astro:content';
+import Icon from './Icon.astro';
+import { contactIntents, profile } from '../config/site';
+
+// Case study slugs → titles, so an n8n reply can point to a case study
+// by slug ("related_case") without ever sending a raw URL to the page.
+const cases = Object.fromEntries(
+  (await getCollection('work', ({ data }) => !data.draft)).map((w) => [w.id, w.data.title])
+);
+const firstIntent = contactIntents[0];
+---
+
+<section class="section" id="contact">
+  <div class="container">
+    <div class="contact-card reveal">
+      <div class="contact-intro">
+        <span class="eyebrow">Get in touch</span>
+        <h2 class="section-title">Got a process that eats hours every week?</h2>
+        <p>
+          Tell me what it is and roughly how it works today. I'll reply with honest thoughts on
+          whether it can be automated, and what that would look like.
+        </p>
+        <ul class="contact-points">
+          <li><Icon name="clock" /> I usually reply within a day.</li>
+          <li><Icon name="globe" /> {profile.availability}.</li>
+          <li><Icon name="mapPin" /> Based in {profile.location}.</li>
+        </ul>
+        <p class="contact-direct">
+          Prefer email? <a href={`mailto:${profile.email}`}>{profile.email}</a>
+        </p>
+      </div>
+
+      <form
+        class="form"
+        id="contact-form"
+        novalidate
+        data-email={profile.email}
+        data-cases={JSON.stringify(cases)}
+        data-intents={JSON.stringify(contactIntents)}
+      >
+        <fieldset class="intent-group">
+          <legend class="form-label">I'm getting in touch about</legend>
+          <div class="intent-options">
+            {
+              contactIntents.map((opt, i) => (
+                <label class="intent-option">
+                  <input type="radio" name="intent" value={opt.id} checked={i === 0} />
+                  <span>{opt.label}</span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="f-name">Your name</label>
+            <input
+              class="form-input"
+              id="f-name"
+              name="name"
+              type="text"
+              required
+              autocomplete="name"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="f-email">Email</label>
+            <input
+              class="form-input"
+              id="f-email"
+              name="email"
+              type="email"
+              required
+              autocomplete="email"
+            />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="f-company">
+            Company <span class="optional">(optional)</span>
+          </label>
+          <input
+            class="form-input"
+            id="f-company"
+            name="company"
+            type="text"
+            autocomplete="organization"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="f-bottleneck" id="f-bottleneck-label">
+            {firstIntent.field}
+          </label>
+          <textarea
+            class="form-input"
+            id="f-bottleneck"
+            name="bottleneck"
+            rows="5"
+            required
+            maxlength="4000"
+            placeholder={firstIntent.placeholder}></textarea>
+        </div>
+        <!-- Honeypot: humans never see or fill this -->
+        <div class="hp-field" aria-hidden="true">
+          <label for="f-website">Website</label>
+          <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <div class="form-footer">
+          <button class="btn btn-primary" type="submit" id="f-submit">
+            <Icon name="send" />
+            <span>Send message</span>
+          </button>
+          <p class="form-note">Messages reach me through an automation I built.</p>
+        </div>
+        <p class="form-status" id="f-status" role="status" aria-live="polite"></p>
+
+        <div class="ai-reply" id="f-reply" hidden aria-live="polite">
+          <p class="ai-reply-head">
+            <Icon name="sparkles" />
+            <span>Instant reply from my automation</span>
+          </p>
+          <p class="ai-reply-text" id="f-reply-text"></p>
+          <a class="ai-reply-link" id="f-reply-link" hidden href="#">
+            <span></span>
+            <Icon name="arrowRight" />
+          </a>
+          <p class="ai-reply-note">
+            This was written automatically from your message. I read every enquiry myself and will
+            follow up by email.
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+  const WEBHOOK_URL: string = import.meta.env.PUBLIC_CONTACT_WEBHOOK_URL || '';
+  // AI replies can take a while; after this the visitor gets a neutral message.
+  const TIMEOUT_MS = 30000;
+
+  type Intent = { id: string; label: string; field: string; placeholder: string };
+
+  const form = document.getElementById('contact-form') as HTMLFormElement | null;
+  const status = document.getElementById('f-status');
+  const submit = document.getElementById('f-submit');
+  const label = submit?.querySelector('span');
+  const textarea = document.getElementById('f-bottleneck') as HTMLTextAreaElement | null;
+  const fieldLabel = document.getElementById('f-bottleneck-label');
+  const reply = document.getElementById('f-reply');
+  const replyText = document.getElementById('f-reply-text');
+  const replyLink = document.getElementById('f-reply-link') as HTMLAnchorElement | null;
+
+  const intents: Intent[] = JSON.parse(form?.dataset.intents ?? '[]');
+  const cases: Record<string, string> = JSON.parse(form?.dataset.cases ?? '{}');
+
+  const showStatus = (type: 'success' | 'error' | 'info', msg: string) => {
+    if (!status) return;
+    status.dataset.type = type;
+    status.textContent = msg;
+  };
+
+  const clearStatus = () => {
+    if (!status) return;
+    delete status.dataset.type;
+    status.textContent = '';
+  };
+
+  const hideReply = () => {
+    if (reply) reply.hidden = true;
+    if (replyLink) replyLink.hidden = true;
+  };
+
+  // --- "I'm getting in touch about" changes the message label and hint ---
+  const setIntent = (id: string) => {
+    const intent = intents.find((i) => i.id === id);
+    if (!form || !intent) return;
+    const radio = form.querySelector<HTMLInputElement>(`input[name="intent"][value="${id}"]`);
+    if (radio) radio.checked = true;
+    if (fieldLabel) fieldLabel.textContent = intent.field;
+    if (textarea) textarea.placeholder = intent.placeholder;
+  };
+
+  form?.querySelectorAll<HTMLInputElement>('input[name="intent"]').forEach((r) => {
+    r.addEventListener('change', () => setIntent(r.value));
+  });
+
+  // Buttons elsewhere on the page (e.g. "Talk to me about a role") preselect an option
+  document.querySelectorAll<HTMLElement>('[data-intent]').forEach((el) => {
+    el.addEventListener('click', () => {
+      setIntent(el.dataset.intent ?? '');
+      // Focus the first empty field once the scroll has finished
+      window.setTimeout(() => {
+        form?.querySelector<HTMLElement>('#f-name')?.focus({ preventScroll: true });
+      }, 600);
+    });
+  });
+
+  // --- Reading the n8n response ---
+  // Accepts { reply, related_case } (or an n8n array of them). AI Agent nodes
+  // name their answer "output", so that is accepted too.
+  const readReply = async (res: Response) => {
+    try {
+      let body: unknown = await res.json();
+      if (Array.isArray(body)) body = body[0];
+      if (body && typeof body === 'object' && 'json' in body) body = (body as any).json;
+      if (!body || typeof body !== 'object') return null;
+      const b = body as Record<string, unknown>;
+      const text =
+        typeof b.reply === 'string' ? b.reply : typeof b.output === 'string' ? b.output : '';
+      if (!text.trim()) return null;
+      const slug =
+        typeof b.related_case === 'string'
+          ? (b.related_case.trim().replace(/\/+$/, '').split('/').pop() ?? '')
+          : '';
+      return { text: text.trim().slice(0, 1500), slug: slug in cases ? slug : '' };
+    } catch {
+      return null; // not JSON, e.g. "Workflow was started"
+    }
+  };
+
+  const showReply = (r: { text: string; slug: string }) => {
+    if (!reply || !replyText) return;
+    replyText.textContent = r.text;
+    if (replyLink && r.slug) {
+      replyLink.href = `/work/${r.slug}/`;
+      const span = replyLink.querySelector('span');
+      if (span) span.textContent = `Related case study: ${cases[r.slug]}`;
+      replyLink.hidden = false;
+    }
+    reply.hidden = false;
+  };
+
+  if (form)
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearStatus();
+      hideReply();
+
+      const data = new FormData(form);
+      const value = (k: string) => String(data.get(k) ?? '').trim();
+      const fields = {
+        intent: value('intent') || 'project',
+        name: value('name'),
+        company: value('company'),
+        email: value('email'),
+        bottleneck: value('bottleneck')
+      };
+
+      // Bots fill the hidden field; pretend success and drop it.
+      if (value('website')) {
+        form.reset();
+        showStatus('success', "Thanks, your message is on its way. I'll be in touch soon.");
+        return;
+      }
+
+      const invalid: string[] = [];
+      if (!fields.name) invalid.push('name');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) invalid.push('email');
+      if (!fields.bottleneck) invalid.push('bottleneck');
+
+      form.querySelectorAll<HTMLElement>('.form-input').forEach((el) => {
+        el.setAttribute('aria-invalid', String(invalid.includes(el.getAttribute('name') ?? '')));
+      });
+      if (invalid.length) {
+        showStatus('error', 'Please add your name, a valid email and a short message.');
+        form.querySelector<HTMLElement>(`[name="${invalid[0]}"]`)?.focus();
+        return;
+      }
+
+      const intentLabel = intents.find((i) => i.id === fields.intent)?.label ?? 'Enquiry';
+
+      // No webhook configured: hand off to the visitor's email client.
+      if (!WEBHOOK_URL) {
+        const to = form.dataset.email ?? '';
+        const subject = `${intentLabel} from ${fields.name}${fields.company ? ` (${fields.company})` : ''}`;
+        const body = `${fields.bottleneck}\n\n${fields.name}\n${fields.email}`;
+        window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        return;
+      }
+
+      submit?.setAttribute('aria-busy', 'true');
+      if (label) label.textContent = 'Sending…';
+      // If n8n is writing a reply, let the visitor know something is happening
+      const slowTimer = window.setTimeout(() => {
+        showStatus('info', 'Message received. My automation is reading it…');
+      }, 2500);
+      const controller = new AbortController();
+      const abortTimer = window.setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        // ngrok's free tier shows browsers a warning page instead of forwarding the
+        // request; this header skips it. Not needed once n8n has a permanent URL.
+        if (/\.ngrok(-free)?\.(app|dev|io)$/.test(new URL(WEBHOOK_URL).hostname)) {
+          headers['ngrok-skip-browser-warning'] = 'true';
+        }
+        const res = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers,
+          signal: controller.signal,
+          body: JSON.stringify({
+            ...fields,
+            intent_label: intentLabel,
+            company: fields.company || 'N/A',
+            submitted_at: new Date().toISOString(),
+            source: 'portfolio-site'
+          })
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        const r = await readReply(res);
+        form.reset();
+        setIntent(intents[0]?.id ?? 'project');
+        if (r) {
+          showStatus('success', "Thanks, your message reached me. Here's a first response:");
+          showReply(r);
+        } else {
+          showStatus('success', "Thanks, your message is on its way. I'll reply within a day.");
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          showStatus(
+            'info',
+            `That's taking longer than expected. Your message has most likely reached me. If you don't hear back within a day, email me at ${form.dataset.email}.`
+          );
+        } else {
+          showStatus(
+            'error',
+            `Sorry, that didn't send. Please email me at ${form.dataset.email} instead.`
+          );
+        }
+      } finally {
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(abortTimer);
+        submit?.removeAttribute('aria-busy');
+        if (label) label.textContent = 'Send message';
+      }
+    });
+</script>

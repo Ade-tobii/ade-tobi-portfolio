@@ -1,0 +1,116 @@
+---
+import Icon from './Icon.astro';
+import Avatar from './Avatar.astro';
+import { about, education, experience, profile } from '../config/site';
+---
+
+<section class="section" id="about">
+  <div class="container">
+    <div class="about-grid">
+      <aside class="profile-card reveal">
+        {
+          profile.portrait ? (
+            <img
+              class="profile-portrait"
+              src={profile.portrait}
+              alt={`Portrait of ${profile.name}`}
+              width="720"
+              height="900"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <Avatar />
+          )
+        }
+        <h3>{profile.name}</h3>
+        <p class="aka">Ade Tobi</p>
+        <p class="role">{profile.role}</p>
+        <ul class="profile-facts">
+          <li><Icon name="mapPin" /> {profile.location}</li>
+          <li><Icon name="globe" /> {profile.availability}</li>
+        </ul>
+        <div class="profile-links">
+          <a
+            class="icon-btn"
+            href={profile.links.linkedin}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="LinkedIn"
+          >
+            <Icon name="linkedin" />
+          </a>
+          <a
+            class="icon-btn"
+            href={profile.links.github}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub"
+          >
+            <Icon name="github" />
+          </a>
+          <a class="icon-btn" href={`mailto:${profile.email}`} aria-label="Email">
+            <Icon name="mail" />
+          </a>
+        </div>
+        {
+          profile.resumeUrl && (
+            <a
+              class="btn btn-secondary"
+              href={profile.resumeUrl}
+              download="Adegboyega-Precious-CV.pdf"
+            >
+              <Icon name="download" />
+              Download CV
+            </a>
+          )
+        }
+      </aside>
+
+      <div>
+        <div class="section-head reveal">
+          <span class="eyebrow">About me</span>
+          <h2 class="section-title">An engineer who likes making work disappear.</h2>
+        </div>
+        <div class="about-text reveal">
+          {about.map((para) => <p>{para}</p>)}
+        </div>
+
+        <h3 class="subheading reveal" id="experience">Experience</h3>
+        <ol class="timeline">
+          {
+            experience.map((job) => (
+              <li class="timeline-item reveal">
+                <div class="timeline-head">
+                  <h4 class="timeline-company">{job.company}</h4>
+                  <span class="timeline-period">{job.period}</span>
+                </div>
+                <p class="timeline-role">{job.role}</p>
+                <ul class="timeline-highlights">
+                  {job.highlights.map((h) => (
+                    <li>{h}</li>
+                  ))}
+                </ul>
+              </li>
+            ))
+          }
+        </ol>
+
+        <h3 class="subheading reveal">Education & certifications</h3>
+        <ul class="edu-grid">
+          {
+            education.map((e) => (
+              <li class="edu-item reveal">
+                <Icon name="award" />
+                <div>
+                  <strong>{e.title}</strong>
+                  <span>{e.detail}</span>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

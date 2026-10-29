@@ -1,0 +1,73 @@
+---
+import Icon from './Icon.astro';
+import { audiences, profile } from '../config/site';
+
+const { hiring, project } = audiences;
+---
+
+<section class="paths" aria-label="How I can help">
+  <div class="container">
+    <div class="paths-grid">
+      <article class="path-card reveal">
+        <span class="path-icon"><Icon name="briefcase" /></span>
+        <p class="eyebrow">{hiring.eyebrow}</p>
+        <h2 class="path-title">{hiring.title}</h2>
+        <ul class="path-points">
+          {
+            hiring.points.map((p) => (
+              <li>
+                <Icon name="check" />
+                {p}
+              </li>
+            ))
+          }
+        </ul>
+        <div class="path-actions">
+          <a class="btn btn-primary btn-sm" href="#contact" data-intent={hiring.intent}>
+            {hiring.cta}
+            <Icon name="arrowRight" />
+          </a>
+          {
+            profile.resumeUrl ? (
+              <a
+                class="btn btn-secondary btn-sm"
+                href={profile.resumeUrl}
+                download="Adegboyega-Precious-CV.pdf"
+              >
+                <Icon name="download" />
+                Download CV
+              </a>
+            ) : (
+              <a class="btn btn-secondary btn-sm" href="#experience">
+                See my experience
+              </a>
+            )
+          }
+        </div>
+      </article>
+
+      <article class="path-card reveal">
+        <span class="path-icon"><Icon name="flow" /></span>
+        <p class="eyebrow">{project.eyebrow}</p>
+        <h2 class="path-title">{project.title}</h2>
+        <ul class="path-points">
+          {
+            project.points.map((p) => (
+              <li>
+                <Icon name="check" />
+                {p}
+              </li>
+            ))
+          }
+        </ul>
+        <div class="path-actions">
+          <a class="btn btn-primary btn-sm" href="#contact" data-intent={project.intent}>
+            {project.cta}
+            <Icon name="arrowRight" />
+          </a>
+          <a class="btn btn-secondary btn-sm" href="#work">See results</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>

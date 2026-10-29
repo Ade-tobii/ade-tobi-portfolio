@@ -1,0 +1,27 @@
+---
+import { principles } from '../config/site';
+---
+
+<section class="section section-tint" id="approach">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">How I work</span>
+      <h2 class="section-title">Automation that keeps working after the demo.</h2>
+      <p class="section-lede">
+        A bot that works once is easy. These four rules are what keep mine running at month-end.
+      </p>
+    </div>
+    <ol class="principles">
+      {
+        principles.map((p) => (
+          <li class="principle reveal">
+            <div>
+              <h3>{p.title}</h3>
+              <p>{p.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>

@@ -1,0 +1,198 @@
+---
+import { getCollection } from 'astro:content';
+import Icon from './Icon.astro';
+import { filterTags, projects, toolFilters } from '../config/site';
+
+const work = (await getCollection('work', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order
+);
+const featured = work.slice(0, 3);
+const more = work.slice(3);
+
+// Each card carries the filter ids it matches, e.g. data-tags="rpa python"
+const tagsOf = (tools: readonly string[]) => filterTags(tools).join(' ');
+
+// Only show filters that match at least one item
+const allTools = [...work.map((w) => w.data.stack), ...projects.map((p) => p.tools)];
+const filters = toolFilters
+  .map((f) => ({
+    ...f,
+    count: allTools.filter((tools) => filterTags(tools).includes(f.id)).length
+  }))
+  .filter((f) => f.count > 0);
+const total = allTools.length;
+---
+
+<section class="section" id="work">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Selected work</span>
+      <h2 class="section-title">Real processes, measurably faster.</h2>
+      <p class="section-lede">
+        A few of the automations I've built, and what changed for the people who used to do the work
+        by hand.
+      </p>
+    </div>
+
+    <div class="work-filter reveal" role="group" aria-label="Filter work by tool">
+      <span class="work-filter-label"><Icon name="filter" /> Filter by tool</span>
+      <div class="work-filter-buttons">
+        <button type="button" class="filter-btn" data-filter="all" aria-pressed="true">
+          All <span class="filter-count">{total}</span>
+        </button>
+        {
+          filters.map((f) => (
+            <button type="button" class="filter-btn" data-filter={f.id} aria-pressed="false">
+              {f.label} <span class="filter-count">{f.count}</span>
+            </button>
+          ))
+        }
+      </div>
+      <p class="work-filter-status" id="work-filter-status" aria-live="polite"></p>
+    </div>
+
+    <div data-filter-group>
+      <ol class="work-list">
+        {
+          featured.map((entry) => {
+            const d = entry.data;
+            return (
+              <li class="reveal" data-tags={tagsOf(d.stack)}>
+                <a class="work-card" href={`/work/${entry.id}/`}>
+                  <div class="work-body">
+                    <p class="work-category">{d.category}</p>
+                    <h3>{d.title}</h3>
+                    <p class="work-summary">{d.summary}</p>
+                    <ul class="work-stats">
+                      {d.metrics.slice(0, 2).map((m) => (
+                        <li>
+                          <span class="work-stat-value">{m.value}</span>
+                          <span class="work-stat-label">{m.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <ul class="chips chips-sm" aria-label="Tools">
+                      {d.stack.slice(0, 4).map((t) => (
+                        <li class="chip">{t}</li>
+                      ))}
+                    </ul>
+                    <span class="read-more">
+                      Read the case study <Icon name="arrowRight" />
+                    </span>
+                  </div>
+                  {d.diagram ? (
+                    <div class="work-media">
+                      <img src={d.diagram} alt="" loading="lazy" />
+                    </div>
+                  ) : (
+                    <div class="work-media work-media-result" aria-hidden="true">
+                      <span class="work-media-label">Result</span>
+                      <span class="work-media-value">{d.impact}</span>
+                    </div>
+                  )}
+                </a>
+              </li>
+            );
+          })
+        }
+      </ol>
+    </div>
+
+    {
+      more.length > 0 && (
+        <div data-filter-group>
+          <h3 class="subheading reveal">More case studies</h3>
+          <ul class="compact-grid">
+            {more.map((entry) => (
+              <li class="reveal" data-tags={tagsOf(entry.data.stack)}>
+                <a class="compact-card" href={`/work/${entry.id}/`}>
+                  <p class="work-category">{entry.data.category}</p>
+                  <h4>{entry.data.title}</h4>
+                  <p>{entry.data.summary}</p>
+                  <ul class="chips chips-sm" aria-label="Tools">
+                    {entry.data.stack.slice(0, 4).map((t) => (
+                      <li class="chip">{t}</li>
+                    ))}
+                  </ul>
+                  <span class="result-pill">
+                    <Icon name="check" />
+                    {entry.data.impact}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    <div data-filter-group>
+      <h3 class="subheading reveal">Side projects</h3>
+      <p class="subheading-note reveal">
+        Things I build in my own time to try out new tools, mostly AI agents running on self-hosted
+        n8n.
+      </p>
+      <ul class="project-grid">
+        {
+          projects.map((p) => (
+            <li class="project-card reveal" data-tags={tagsOf(p.tools)}>
+              <h4>{p.title}</h4>
+              <p>{p.body}</p>
+              <ul class="chips">
+                {p.tools.map((t) => (
+                  <li class="chip">{t}</li>
+                ))}
+              </ul>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
+  const items = document.querySelectorAll<HTMLElement>('#work [data-tags]');
+  const groups = document.querySelectorAll<HTMLElement>('#work [data-filter-group]');
+  const status = document.getElementById('work-filter-status');
+
+  const apply = (id: string, updateUrl = true) => {
+    // Unknown ids (e.g. a stale shared link) fall back to "all"
+    if (![...buttons].some((b) => b.dataset.filter === id)) id = 'all';
+
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === id)));
+
+    let shown = 0;
+    items.forEach((el) => {
+      const match = id === 'all' || (el.dataset.tags ?? '').split(' ').includes(id);
+      el.hidden = !match;
+      if (match) {
+        shown++;
+        el.classList.add('visible'); // skip the scroll-reveal for re-shown cards
+      }
+    });
+    groups.forEach((g) => {
+      g.hidden = !g.querySelector('[data-tags]:not([hidden])');
+    });
+
+    if (status) {
+      const label = [...buttons].find((b) => b.dataset.filter === id)?.firstChild?.textContent;
+      status.textContent =
+        id === 'all' ? '' : `Showing ${shown} of ${items.length} for ${label?.trim()}`;
+    }
+
+    // Shareable link, e.g. /?tool=n8n#work
+    if (updateUrl) {
+      const url = new URL(window.location.href);
+      if (id === 'all') url.searchParams.delete('tool');
+      else url.searchParams.set('tool', id);
+      history.replaceState(null, '', url);
+    }
+  };
+
+  buttons.forEach((b) => b.addEventListener('click', () => apply(b.dataset.filter ?? 'all')));
+
+  const initial = new URLSearchParams(window.location.search).get('tool');
+  if (initial) apply(initial, false);
+</script>

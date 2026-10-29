@@ -1,0 +1,33 @@
+---
+import { profile } from '../config/site';
+
+interface Props {
+  class?: string;
+  /** Use when the name is already written next to the photo (empty alt text). */
+  decorative?: boolean;
+  /** Load immediately; use for photos visible on first paint. */
+  eager?: boolean;
+}
+
+const { class: className, decorative = false, eager = false } = Astro.props;
+const initials = profile.alias
+  .split(' ')
+  .map((w) => w[0])
+  .join('')
+  .slice(0, 2);
+---
+
+<div class:list={['avatar', className]}>
+  {
+    profile.photo ? (
+      <img
+        src={profile.photo}
+        alt={decorative ? '' : `Photo of ${profile.name}`}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+      />
+    ) : (
+      <span aria-hidden="true">{initials}</span>
+    )
+  }
+</div>
