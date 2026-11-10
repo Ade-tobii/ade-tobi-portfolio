@@ -37,7 +37,16 @@ const d = entry.data;
         <h1>{d.title}</h1>
         {d.subtitle && <p class="cs-subtitle">{d.subtitle}</p>}
         <p class="cs-summary">{d.summary}</p>
-        <span class="result-pill"><Icon name="check" /> {d.impact}</span>
+        <div class="cs-header-actions">
+          <span class="result-pill"><Icon name="check" /> {d.impact}</span>
+          {
+            d.liveUrl && (
+              <a class="btn btn-secondary btn-sm" href={d.liveUrl} target="_blank" rel="noopener">
+                Visit the live site <Icon name="arrowRight" />
+              </a>
+            )
+          }
+        </div>
       </header>
 
       {
@@ -74,7 +83,7 @@ const d = entry.data;
             <a href={d.diagram} target="_blank" rel="noopener" aria-label="Open full-size diagram">
               <img src={d.diagram} alt={d.diagramAlt ?? `${d.title} diagram`} loading="lazy" />
             </a>
-            <figcaption>How it works (click to enlarge)</figcaption>
+            <figcaption>{d.diagramCaption ?? 'How it works (click to enlarge)'}</figcaption>
           </figure>
         )
       }

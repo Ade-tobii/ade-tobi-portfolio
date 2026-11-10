@@ -3,7 +3,7 @@ title: 'AI that reads any vendor invoice'
 subtitle: 'Intelligent Document Extraction with LangGraph, LangChain & Gemini · Tolaram Group'
 summary: 'Template-based tools broke whenever a vendor changed their invoice layout, and they came with licensing fees. An AI extraction framework now reads invoices of any layout and checks every field before it is used.'
 category: AI document processing
-order: 4
+order: 5
 impact: 'Any layout · licensing fees removed'
 challenge: 'Invoice extraction relied on fixed templates that failed on new layouts and carried annual licensing costs.'
 solution: 'An AI extraction framework where a language model reads the invoice and a strict schema validates every field before it reaches finance systems.'

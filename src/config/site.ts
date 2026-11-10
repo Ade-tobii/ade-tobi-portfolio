@@ -256,6 +256,11 @@ export const toolFilters = [
     match: ['LangGraph', 'LangChain', 'Gemini', 'Groq', 'Grok', 'LLM', 'Pydantic', 'OpenAI']
   },
   { id: 'n8n', label: 'n8n', match: ['n8n'] },
+  {
+    id: 'web',
+    label: 'Web & full-stack',
+    match: ['Next.js', 'React', 'TypeScript', 'Web Push']
+  },
   { id: 'python', label: 'Python', match: ['Python', 'openpyxl'] },
   {
     id: 'enterprise',

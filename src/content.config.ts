@@ -23,8 +23,12 @@ const work = defineCollection({
     result: z.string(),
     metrics: z.array(z.object({ value: z.string(), label: z.string() })).default([]),
     stack: z.array(z.string()),
+    /** Optional link to the live project, shown as a button on the case page. */
+    liveUrl: z.string().url().optional(),
     diagram: z.string().optional(),
     diagramAlt: z.string().optional(),
+    /** Optional caption under the image. Defaults to "How it works". */
+    diagramCaption: z.string().optional(),
     draft: z.boolean().default(false)
   })
 });

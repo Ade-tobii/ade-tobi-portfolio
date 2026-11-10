@@ -1306,6 +1306,13 @@ textarea.form-input {
   margin-bottom: 48px;
 }
 
+.cs-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
 .cs-header h1 {
   font-family: var(--font-display);
   font-size: clamp(2.1rem, 4.6vw, 3.3rem);

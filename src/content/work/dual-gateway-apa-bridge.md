@@ -3,7 +3,7 @@ title: 'One AI-assisted pipeline for structured data and chat messages'
 subtitle: 'Dual-Gateway APA Bridge'
 summary: 'Requests arrived both as structured data and as free-text Slack and Teams messages, and the old system choked on the messy half. I built a pipeline where AI reads the messages and strict checks keep the data clean.'
 category: AI workflows
-order: 7
+order: 8
 impact: '99.8% of inputs handled automatically'
 challenge: "The existing system couldn't handle free-text messages alongside structured data, so 40% of inputs failed."
 solution: "An n8n workflow where an AI agent reads the free text, then the same validation rules apply to everything before it's saved."

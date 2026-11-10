@@ -3,7 +3,7 @@ title: 'Ending duplicate transactions for KTNL First Bank'
 subtitle: 'State-Persistent Checkpointing for KTNL First Bank'
 summary: 'A bot extracting bank transactions kept re-processing the same records after errors. I gave it a memory, so it can safely retry without ever recording a transaction twice.'
 category: Banking
-order: 5
+order: 6
 client: KTNL First Bank
 impact: 'Zero duplicates · no manual clean-up'
 challenge: 'Screen errors made the bot retry transactions, creating three times the records with no way to spot the duplicates.'

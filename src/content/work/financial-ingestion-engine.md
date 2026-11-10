@@ -3,7 +3,7 @@ title: 'Zero data loss on 200 MB market data feeds'
 subtitle: 'High-Volume Financial Ingestion Engine & Container Runtime Optimisation'
 summary: 'A financial data pipeline kept crashing on very large market data files, losing records each time. I fixed it at the infrastructure level, so every record now arrives, every day.'
 category: Financial market data
-order: 6
+order: 7
 impact: 'Zero data loss · zero crashes'
 challenge: 'Very large market data files crashed the ingestion service, losing data and forcing manual recovery.'
 solution: 'Tuned the server environment to accept the larger files, split the data into smaller predictable batches, and added automatic retries.'

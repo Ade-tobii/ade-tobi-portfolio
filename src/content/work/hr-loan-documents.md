@@ -3,7 +3,7 @@ title: '3,000+ employee loan requests, filed automatically'
 subtitle: 'HR Document Orchestration with SuccessFactors & Microsoft Graph API · Tolaram Group'
 summary: 'Loan documents had to be found in SharePoint and attached to the right record in SuccessFactors, one by one. A pipeline now does it in 60–90 seconds each, and flags anything that does not match.'
 category: HR operations
-order: 3
+order: 4
 impact: '3,000+ requests · 100% audit integrity'
 challenge: 'HR staff manually matched loan documents in SharePoint to employee records in SuccessFactors, at 2+ minutes per request.'
 solution: 'A pipeline that fetches files through Microsoft Graph API, uploads them to SuccessFactors, and routes each one to a Completed or Exception folder.'
